@@ -325,27 +325,10 @@ else
 	echo "Formatting device..."
 	device="$targetMedia"
 
-	# Remove all partitions
-	while true; do
-		partId=$(env LANG='' parted -s "$device" print | tail --lines 2 | grep '^\s[0-9]\+\s\+.*$' | awk '{print $1}')
-		if [ -n "$partId" ]; then
-			if [ "$(mount | grep -c "${device}${partId}")" != 0 ]; then
-				umount "${device}${partId}"
-			fi
-
-			parted -s "$device" rm "$partId"
-		else
-			break
-		fi
-	done
-
-	# Create partiton
-	size=$(env LANG='' parted -s "$device" print | grep ^Disk | cut -f2 -d':' | sed 's/\s//g')
-	parted --align cylinder -s "$device" mkpart primary 1MB "$size" # We start at 1MB for grub (it needs a post-mbr gap for its code)
+	# Create partiton table
+	parted -s "$device" mklabel msdos
+	parted --align cylinder -s "$device" mkpart primary 1MB 5G # We start at 1MB for grub (it needs a post-mbr gap for its code)
 	
-	blockdev --rereadpt "$device" || true # Reload partition table
-	partprobe "$device" # Reload partition table
-
 	# get first partition
 	partition=$(lsblk "$device" -o type,name -p -r -n | awk '/^part/ { print $2 }')
 
