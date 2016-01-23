@@ -347,7 +347,7 @@ else
 	partprobe "$device" # Reload partition table
 
 	# get first partition
-	partition=`ls --color=no -1 "$device"* | grep -ve "$device"'$'`
+	partition=$(lsblk "$device" -o type,name -p -r -n | awk '/^part/ { print $2 }')
 
 	# Create the ntfs partition
 	"$mkntfsProg" --quiet --fast --label 'Windows USB' "$partition"
